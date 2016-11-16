@@ -51,10 +51,10 @@ void top_level_task(const Task *task,
                     Context ctx, Runtime *runtime)
 {
   p1comp = runtime->create_phase_barrier(ctx, numworkers);
-  p1comp = runtime->advance_phase_barrier(ctx, p1comp); // Unsure why needed
+  p1comp = runtime->advance_phase_barrier(ctx, p1comp);
 
   p2comp = runtime->create_phase_barrier(ctx, numworkers);
-  p2comp = runtime->advance_phase_barrier(ctx, p2comp);  // Unsure why needed
+  p2comp = runtime->advance_phase_barrier(ctx, p2comp); 
   
   // We spawn phase 2, but make it dependent on phase 1 completing
   const char* phase2 = "Phase 2";
@@ -75,6 +75,7 @@ void top_level_task(const Task *task,
 
   // When phase 2 barrier is complete, we can destroy both
   p2comp.wait();
+  printf("Phase 2 complete, destroying barriers\n");
   runtime->destroy_phase_barrier(ctx, p1comp);
   runtime->destroy_phase_barrier(ctx, p2comp);
 }
