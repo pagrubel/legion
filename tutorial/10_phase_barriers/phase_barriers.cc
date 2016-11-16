@@ -36,35 +36,47 @@ enum TaskIDs {
   WORKER_TASK_ID,
 };
 
-PhaseBarrier pb;
+PhaseBarrier p1comp;
+PhaseBarrier p2comp;
 
 void worker_task(const Task *task,
                  const std::vector<PhysicalRegion> &regions,
                  Context ctx, Runtime *runtime)
 {
   printf("%s\n", (const char*)task->args);
-  pb.arrive();
 }
 
 void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime)
 {
+  p1comp = runtime->create_phase_barrier(ctx, numworkers);
+  p1comp = runtime->advance_phase_barrier(ctx, p1comp); // Unsure why needed
+
+  p2comp = runtime->create_phase_barrier(ctx, numworkers);
+  p2comp = runtime->advance_phase_barrier(ctx, p2comp);  // Unsure why needed
   
-  pb = runtime->create_phase_barrier(ctx, numworkers);
-
-  const char* phase1 = "Phase 1";
-  for(int i=0; i < numworkers; i++){
-    TaskLauncher launcher(WORKER_TASK_ID, TaskArgument(phase1,sizeof(char*)));
-    runtime->execute_task(ctx, launcher);
-  }
-
+  // We spawn phase 2, but make it dependent on phase 1 completing
   const char* phase2 = "Phase 2";
   for(int i=0; i < numworkers; i++){
     TaskLauncher launcher(WORKER_TASK_ID, TaskArgument(phase2,sizeof(char*)));
+    launcher.add_wait_barrier(p1comp);
+    launcher.add_arrival_barrier(p2comp);
     runtime->execute_task(ctx, launcher);
   }
-   
+
+  // We spawn phase 1 without any dependencies
+  const char* phase1 = "Phase 1";
+  for(int i=0; i < numworkers; i++){
+    TaskLauncher launcher(WORKER_TASK_ID, TaskArgument(phase1,sizeof(char*)));
+    launcher.add_arrival_barrier(p1comp);
+    runtime->execute_task(ctx, launcher);
+  }
+
+  // When phase 2 barrier is complete, we can destroy both
+  p2comp.wait();
+  runtime->destroy_phase_barrier(ctx, p1comp);
+  runtime->destroy_phase_barrier(ctx, p2comp);
 }
 
 int main(int argc, char **argv)
@@ -72,22 +84,13 @@ int main(int argc, char **argv)
   if(argc > 1) 
     numworkers = atoi(argv[1]);
 
-  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
   Runtime::register_legion_task<top_level_task>(TOP_LEVEL_TASK_ID,
-      Processor::LOC_PROC, true/*single*/, false/*index*/);
-  // Note that tasks which return values must pass the type of
-  // the return argument as the first template parameter.
+      Processor::LOC_PROC, true, false);
+
   Runtime::register_legion_task<worker_task>(WORKER_TASK_ID,
-      Processor::LOC_PROC, true/*single*/, false/*index*/);
-  // The sum-task has a very special property which is that it is
-  // guaranteed never to make any runtime calls.  We call these
-  // kinds of tasks "leaf" tasks and tell the runtime system
-  // about them using the 'TaskConfigOptions' struct.  Being
-  // a leaf task allows the runtime to perform significant
-  // optimizations that minimize the overhead of leaf task
-  // execution.  Note that we also tell the runtime to 
-  // automatically generate the variant ID for this task
-  // with the 'AUTO_GENERATE_ID' argument.
+      Processor::LOC_PROC, true, false);
+
+  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
 
   return Runtime::start(argc, argv);
 }
