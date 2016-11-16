@@ -20,15 +20,6 @@
 #include "legion.h"
 using namespace Legion;
 
-/*
- * To illustrate task launches and futures in Legion
- * we implement a program to compute the first N
- * Fibonacci numbers.  While we note that this is not
- * the fastest way to compute Fibonacci numbers, it
- * is designed to showcase the functional nature of
- * Legion tasks and futures.
- */
-
 int numworkers = 4;
 
 enum TaskIDs {
