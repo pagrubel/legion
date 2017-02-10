@@ -74,7 +74,7 @@ Inductive e :=
 Inductive memop := 
   | mread : l → memop
   | mwrite : l → v → memop
-  | mreduce : l → id → v → memop.
+  | mreduce : l → var → v → memop.
 
 (* Utility definitions *) 
 Fixpoint zip {a b} (xs : list a) (ys : list b) : list (prod a b) := 
@@ -143,7 +143,7 @@ Inductive eval: Map r ρ
   | EWrite : ∀ M L H S S' C e1 e2 l E1 E2 E v,
     eval M L H S C e1 (vl l, E1) →
     eval M L H S' C e2 (v, E2) →
-    valid_interleave S C E (E1::E2::[]) →
+    valid_interleave S C E [E1; E2] →
     eval M L H S' C (write e1 e2) (vl l, E ++ [mwrite l v])
   | ENew : ∀ M L H S C t l r, 
     l ∈ lu r M →
@@ -168,14 +168,14 @@ Inductive eval: Map r ρ
     eval M L H S C e1 (vcoloring K, E1) → 
     eval M L H (apply E1 S) C e2 (vl l, E2) → 
     eval M L H (apply E2 (apply E1 S)) C e3 (viv v, E3) → 
-    valid_interleave S C E (E1::E2::E3::[]) →
+    valid_interleave S C E [E1; E2; E3] →
     eval M L H S C (color e1 e2 e3) (vcoloring ((l,v)::K), E) 
 	| EPartition : ∀ M M' L H S C rs rp ρs e1 e2 K E' E1 E2 v, 
     eval M L H S C e1 (vcoloring K, E1) → 
     ρs = map (map fst) (groupBy (λ x y, beq_nat (snd x) (snd y)) K) →
     M' = zip rs ρs ++ M →  
     eval M' L H S C e2 (v, E2) →
-    valid_interleave S C E' (E1 :: E2 :: []) →
+    valid_interleave S C E' [E1; E2] →
     eval M L H S C (partition rp e1 rs e2) (v, E')  
   | EPack : ∀ M L H S C e1 v E E' ρs rs v' T,
     eval M L H S C e1 (v, E') →
