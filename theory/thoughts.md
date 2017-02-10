@@ -1,4 +1,4 @@
-# Issues with oopsla paper semantics (E-<X> from paper, E<X> from Coq): 
+## Issues with oopsla13 paper
   - E-Call seems problematic. It allows concurrent evaluation of the body with
     the evaluation of the arguments, which is nonsense in this call-by-value
     setting. In other words, while there may not be memory dependence, there is
@@ -15,7 +15,7 @@
     Shouldn't this be disallowed?
   - Shouldn't we ensure new regions are fresh e.g. for the partition rule? 
 
-# Other thoughts:
+## Other thoughts
   - Incomplete, as apply, valid_interleave, and E-Call are not implemented.
   - Lots of semantic rules are ommitted, e.g. tuple, dereference, etc. I'm
     guessing this is intentional as these will be defined by whatever  language
