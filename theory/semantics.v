@@ -1,133 +1,6 @@
-Require Import EqNat Arith.Peano_dec Program.Basics.
-Require Import Unicode.Utf8.
-Require Import List.
-Import ListNotations. 
-Open Scope program_scope.
+Require Import util syntax.
 
 (* Based directly on oopsla 2013 paper *)
-
-(* Syntax *)
-Definition r := nat. (* Logical region *)
-Definition l := nat. (* Location (pointer) *)
-Definition Color := nat.
-Definition set := list. (* We use lists for sets *)
-Definition ρ := set l. (* Physical region, which is a set of  *)
-Definition var := nat.
-
-Inductive constraint := 
-  | subr : r → r → constraint
-  | disjoint : r → r → constraint.
-
-Inductive privilege := 
-  | reads 
-  | writes 
-  | reduces.
-
-Inductive coherence : Type := 
-  | exclusive : coherence
-  | atomic : coherence 
-  | simult : coherence.
-
-Inductive T := 
-  | tbool 
-  | tint
-  | ttuple : list T → T
-  | pointer : T → r → T
-  | coloring : r → T
-  | reg_rel (rs : list r) : T → list constraint → T
-  | tfunction : list r → list T → list privilege → list coherence → T.
-
-Inductive v := 
-  | vbv : bool → v  
-  | viv : nat → v
-  | vtuple : list v → v
-  | vnull 
-  | vl : nat → v
-  | vcoloring : list (prod l nat) → v 
-  | vreg_rel : list ρ → v → v.
-
-Inductive e :=
-  | bv : bool → e
-  | iv : nat → e
-  | etuple : list e → e
-  | index : e → nat → e
-  | id : var → e
-  | new : T → r → e
-  | null : T → r → e
-  | isnull : e → e
-  | upr : e → list r → e
-  | downr : e → list r → e
-  | read : e → e 
-  | write : e → e → e
-  | reduce : var → e → e
-  | newcolor : r → e
-  | color : e → e → e → e
-  | add : e → e → e
-  | lt : e → e → e
-  | elet : var → T → e → e → e
-  | eif : e → e → e → e
-  | call : var → list r → list e → e
-  | partition : r → e → list r → e → e
-  | pack : e → T → list r → e
-  | unpack : e → var → T → list r → e → e.
-
-(* Inductive definition for what functions are defined, default to any *)
-Inductive function : 
-  var →  
-  list r → 
-  list var → 
-  list T → 
-  list privilege → 
-  list coherence → 
-  T → e → Prop := 
-  | mkfunction : ∀ id rs xs Ts T Phi Q e, function id rs xs Ts T Phi Q e
-.
-
-Inductive memop := 
-  | mread : l → memop
-  | mwrite : l → v → memop
-  | mreduce : l → var → v → memop.
-
-(* Utility *) 
-Fixpoint zip {a b} (xs : list a) (ys : list b) : list (prod a b) := 
-  match xs, ys with
-  | [], _ => []
-  | _, [] => []
-  | x::xs, y::ys => (x,y)::zip xs ys
-  end.
-
-Fixpoint contains {a} (eq : a → a → bool) (y : a) (xs : list a) := 
-  match xs with 
-  | [] => false
-  | x::xs => if eq x y then true else contains eq y xs
-  end.
-
-Fixpoint groupBy {a} (f : a → a → bool) (xs : list a) := match xs with  
-  | [] => []
-  | x::xs => (x::filter (f x) xs) :: filter (negb ∘ contains f x) (groupBy f xs)
-  end.
-  
-Definition Map a b := list (prod a b).
-
-Definition lookup {a} (x:nat) (l:Map nat a) : option a := 
-  match find (λ p, beq_nat x (fst p)) l with 
-    | None => None
-    | Some (k,v) => Some v
-  end.
-
-Notation " x ∈ y " := (In x y) (at level 30).
-Notation " x ∉ y " := (¬ In x y) (at level 30).
-
-Fixpoint inits {a} (xs : list a) : list (list a) := match xs with
-  | [] => []
-  | x::xs => [x] :: map (cons x) (inits xs)
-  end.
-
-Definition lu {a} (x:nat) (l:Map nat (list a)) : list a := 
-  match lookup x l with 
-    | None => []
-    | Some l => l
-  end.
 
 (* TODO implement interleaves and apply *)
 Definition valid_interleave (S : Map l v) (C : list l) (E' : list memop) 
@@ -210,9 +83,13 @@ Inductive eval: Map r ρ
     function id rs xs ts Phi Q t e →
     (M', L', H, S', C', e) ↦ (v, E'') → 
     (M, L, H, S, C, call id rs es) ↦ (v, E'')
-  | ELet : ∀ M L H S C e b id v E v' E' t, 
+  | ELet : ∀ M L H S C e b id v E v' E' t S', 
     (M, L, H, S, C, e) ↦ (v, E) →
+    S' = apply E S →
     (M, (id, v) :: L, H, S, C, b) ↦ (v', E')  →
     (M, L, H, S, C, elet id t e b) ↦ (v', E')
+  | EId : ∀ M L H S C x v,
+    lookup x L = Some v → 
+    (M, L, H, S, C, id x) ↦ (v, [])
 where " input ↦ output " := (eval input output).
 
