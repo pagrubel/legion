@@ -30,6 +30,7 @@ inversion H2. subst. clear H2. apply subset_refl. inversion H2. subst. clear H2.
 specialize (IHcclo2 _ _ _ H eq_refl).  specialize (IHcclo1 _ _ _ H eq_refl).
 apply (subset_trans _ _ _ IHcclo1 IHcclo2). inversion H2. inversion H2. Qed.
 
+(* Lemma 6 from the oopsla13 paper *)
 Lemma resp_clos : ∀ M Ω, M ~ Ω ↔ M ~* Ω.
 intros. split; intros; split; intros; destruct H. apply resp_clos_sub with
 (Ω := Ω). assumption. assumption. prep_induction H0. induction
