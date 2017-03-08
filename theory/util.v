@@ -8,11 +8,18 @@ Require Export EqNat Arith.Peano_dec Program.Basics.
 
 Definition all := fold_right andb true.
 
-Fixpoint zip {a b} (xs : list a) (ys : list b) : list (prod a b) := 
+Fixpoint zipWith {a b c} (f : a → b → (c a b)) (xs : list a) (ys : list b) : list (c a b) := 
   match xs, ys with
   | [], _ => []
   | _, [] => []
-  | x::xs, y::ys => (x,y)::zip xs ys
+  | x::xs, y::ys => f x y::zipWith f xs ys
+  end.
+
+Definition zip {a b} := @zipWith a b _ pair. 
+
+Fixpoint tails {a} (l : list a) : list (list a) := match l with
+  | [] => []
+  | x::xs => (x::xs) :: tails xs
   end.
 
 Fixpoint contains {a} (eq : a → a → bool) (y : a) (xs : list a) := 

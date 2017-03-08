@@ -16,6 +16,11 @@ Inductive T :=
 
 Definition Γ := Map var T.
 
+Definition subr_rels (rs : list r) : Ω := concat (map (λ l, match l with
+  | nil => nil
+  | x::xs => map (subr x) xs
+  end) (tails rs)).
+  
 Fixpoint typecheck (env : (Γ * Φ * Ω)) (e : e) : T + string := let '(Γ, Φ, Ω) := env in 
   match e with
   | read e => match typecheck env e with 
@@ -35,7 +40,15 @@ Fixpoint typecheck (env : (Γ * Φ * Ω)) (e : e) : T + string := let '(Γ, Φ, 
     | inl _ => inr "expected pointer type"
     | inr x => inr x
     end
+  | partition r e1 rs e2 => match typecheck env e1 with
+    | inl (coloring r) =>  match typecheck env e2 with
+        | inl t => inl t
+        | err => err
+        end
+    | inl _ => inr "expected coloring"
+    | inr x => inr x  
+    end
   | _ => inr "unimplemented"
   end.
-  
-Reserved Notation " xs ⊢ e :: T " (at level 50). 
+
+Notation " xs ⊢ e : T " := (typecheck xs e = inl T) (at level 50). 
