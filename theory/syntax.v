@@ -80,6 +80,6 @@ Inductive function : var → list r → list var → list T → Φ → Q → T �
   | mkfunction : ∀ id rs xs Ts T Phi Q e, function id rs xs Ts T Phi Q e.
 
 Inductive memop := 
-  | mread : l → memop
+  | mread : l → v → memop
   | mwrite : l → v → memop
   | mreduce : l → var → v → memop.

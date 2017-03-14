@@ -2,10 +2,19 @@ Require Import util syntax.
 
 (* Based directly on oopsla 2013 paper *)
 
+Inductive any_interleave : list memop → list (list memop) → Prop :=
+  | noops : ∀ xs, (∀ x, x ∈ xs → x = []) → any_interleave [] xs
+  | oneop : ∀ x xs ys zs t, any_interleave t (ys ++ xs :: zs) → 
+                            any_interleave (x::t) (ys ++ (x::xs) :: zs).
+
+Fixpoint apply (E : list memop) (S : Map l v) : Map l v := S. 
+
+
 (* TODO implement interleaves and apply *)
 Definition valid_interleave (S : Map l v) (C : list l) (E' : list memop) 
-                             (es : list (list memop)) : Prop := True.
-Fixpoint apply (E : list memop) (S : Map l v) : Map l v := S. 
+                            (es : list (list memop)) : Prop := 
+  any_interleave E' es ∧ 
+  ∀ l, lookup l (apply E' S) = lookup l (apply (concat es) S).
 Definition domain {A B} := @map (A * B) A fst.
 
 Reserved Notation " input ↦ output " (at level 50).
@@ -21,11 +30,11 @@ Inductive eval: Map r ρ
     (M, L, H, S, C, e) ↦ (vl l, E) →
     l ∉ C → 
     lookup l (apply E S) = Some v → 
-    (M, L, H, S, C, read e) ↦ (v, E ++ [mread l])
+    (M, L, H, S, C, read e) ↦ (v, E ++ [mread l v])
   | ERead2 : ∀ M L H S C e l E v,
     (M, L, H, S, C, e) ↦ (vl l, E) →
     l ∉ C → 
-    (M, L, H, S, C, read e) ↦ (v, E ++ [mread l]) 
+    (M, L, H, S, C, read e) ↦ (v, E ++ [mread l v]) 
   | EWrite : ∀ M L H S S' C e1 e2 l E1 E2 E v,
     (M, L, H, S, C, e1) ↦ (vl l, E1) →
     (M, L, H, S', C, e2) ↦ (v, E2) →
@@ -74,14 +83,15 @@ Inductive eval: Map r ρ
     S' = apply E1 S →
     L' = (id, v1)::L →
     (M', L', H, S, C, unpack e1 id T1 rs e2) ↦ (v2, E') 
-  | ECall : ∀ M L H S C es vs Es xs id rs E'' E' M' L' S' C' t ts rs' e Phi Q v, 
+  | ECall : ∀ M L H S C es vs Es xs id rs En1 E'' E' M' L' S' C' t ts rs' e Phi Q v, 
     (∀ e v E, In (e, (v, E)) (zip es (zip vs Es)) → (M, L, H, S, C, e) ↦ (v, E)) →
     valid_interleave S C E' Es →
     M' = zip rs' (map (λ r, lu r M) rs) →  
     L' = zip xs vs →
     S' = apply E' S → 
     function id rs xs ts Phi Q t e →
-    (M', L', H, S', C', e) ↦ (v, E'') → 
+    (M', L', H, S', C', e) ↦ (v, En1) → 
+    valid_interleave S C E'' [E'; En1] →
     (M, L, H, S, C, call id rs es) ↦ (v, E'')
   | ELet : ∀ M L H S C e b id v E v' E' t S', 
     (M, L, H, S, C, e) ↦ (v, E) →
