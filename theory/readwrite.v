@@ -3,6 +3,13 @@ Require Import syntax semantics util.
 Require Import List.
 Import ListNotations.
 
+(* A proof that the program: 
+
+  let x = read y in
+    write z x
+
+  can result in the memory operations ordered as [write, read]
+*)
 Definition read_write x y t T r :=
   elet x t (read (id y)) 
     (write (new T r) (id x)).
