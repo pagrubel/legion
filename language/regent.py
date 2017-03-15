@@ -64,6 +64,8 @@ include_path = [
     realm_dir,
     mapper_dir,
     legion_runtime_dir,
+    "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/include/",
+    "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/include-fixed/"
 ]
 if cuda_include_dir is not None:
     include_path.append(cuda_include_dir)

@@ -7,8 +7,11 @@ Inductive any_interleave : list memop → list (list memop) → Prop :=
   | oneop : ∀ x xs ys zs t, any_interleave t (ys ++ xs :: zs) → 
                             any_interleave (x::t) (ys ++ (x::xs) :: zs).
 
-Fixpoint apply (E : list memop) (S : Map l v) : Map l v := S. 
-
+Fixpoint apply (E : list memop) (S : Map l v) : Map l v := match E with 
+  | [] => S
+  | mwrite l v::xs => apply xs ((l,v)::S)
+  | _ :: xs => apply xs S
+  end.
 
 (* TODO implement interleaves and apply *)
 Definition valid_interleave (S : Map l v) (C : list l) (E' : list memop) 
@@ -39,7 +42,7 @@ Inductive eval: Map r ρ
     (M, L, H, S, C, e1) ↦ (vl l, E1) →
     (M, L, H, S', C, e2) ↦ (v, E2) →
     valid_interleave S C E [E1; E2] →
-    (M, L, H, S', C, write e1 e2) ↦ (vl l, E ++ [mwrite l v])
+    (M, L, H, S, C, write e1 e2) ↦ (vl l, E ++ [mwrite l v])
   | ENew : ∀ M L H S C t l r, 
     l ∈ lu r M →
     l ∉ domain S →
@@ -93,11 +96,12 @@ Inductive eval: Map r ρ
     (M', L', H, S', C', e) ↦ (v, En1) → 
     valid_interleave S C E'' [E'; En1] →
     (M, L, H, S, C, call id rs es) ↦ (v, E'')
-  | ELet : ∀ M L H S C e b id v E v' E' t S', 
+  | ELet : ∀ M L H S C e b id v E v' E' t S' E'', 
     (M, L, H, S, C, e) ↦ (v, E) →
     S' = apply E S →
     (M, (id, v) :: L, H, S, C, b) ↦ (v', E')  →
-    (M, L, H, S, C, elet id t e b) ↦ (v', E')
+    valid_interleave S C E'' [E; E'] →
+    (M, L, H, S, C, elet id t e b) ↦ (v', E'')
   | EId : ∀ M L H S C x v,
     lookup x L = Some v → 
     (M, L, H, S, C, id x) ↦ (v, [])

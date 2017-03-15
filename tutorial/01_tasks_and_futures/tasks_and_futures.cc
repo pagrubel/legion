@@ -129,6 +129,11 @@ void top_level_task(const Task *task,
                       fib_start_time.get_result<double>());
     printf("Fibonacci(%d) = %d (elapsed = %.2f s)\n", i, result, elapsed);
   }
+
+  int i = 30;
+  TaskLauncher launcher(FIBONACCI_TASK_ID, TaskArgument(&i,sizeof(i)));
+  Future* fib_result = new Future(runtime->execute_task(ctx, launcher));
+  //Future fib_result = runtime->execute_task(ctx, launcher);
   
   // Implementation detail for those who are interested: since futures
   // are shared between the runtime and the application, we reference
@@ -141,6 +146,7 @@ void top_level_task(const Task *task,
   // This would have happened anyway when the vector went out of
   // scope, but we have the statement so we could put this comment here.
   fib_results.clear();
+  printf("finished with top level task\n");
 }
 
 int fibonacci_task(const Task *task,

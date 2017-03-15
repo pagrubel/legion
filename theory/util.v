@@ -42,6 +42,10 @@ Definition lookup {a} (x:nat) (l:Map nat a) : option a :=
     | Some (k,v) => Some v
   end.
 
+Lemma lookup_cons : ∀ {a} (x:nat) (l:Map nat a) (v:a), lookup x ((x,v)::l) = Some v.
+intros. unfold lookup. unfold find. simpl. rewrite <- beq_nat_refl. reflexivity.
+Qed. 
+
 Notation " x ∈ y " := (In x y) (at level 30).
 Notation " x ∉ y " := (¬ In x y) (at level 30).
 
