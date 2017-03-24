@@ -1,17 +1,3 @@
--- Copyright 2017 Stanford University
---
--- Licensed under the Apache License, Version 2.0 (the "License");
--- you may not use this file except in compliance with the License.
--- You may obtain a copy of the License at
---
---     http://www.apache.org/licenses/LICENSE-2.0
---
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--- See the License for the specific language governing permissions and
--- limitations under the License.
-
 import "regent"
 
 local c = regentlib.c
@@ -41,7 +27,7 @@ where reads writes(a) do
 end
 
 task main()
-  c.printf("Running triad with %d iterations, %d tasks, and an %ld Mbyte array\n", 
+  c.printf("Running triad with %d iterations, %d tasks, and a %ld MB array\n", 
     num_iterations, num_tasks, [ sizeof(triple) ] * (stream_array_size / 1e6))
   var a = region(ispace(int1d, stream_array_size), triple)
   fill(a, {0.0, 1.0, 2.0})
@@ -56,5 +42,4 @@ task main()
   c.printf("MB/S = %f\n", (1.0 * [ sizeof(triple) ] * stream_array_size * num_iterations) / elapsed)
 end
 
--- main:getast():printpretty(true)
 regentlib.start(main)
