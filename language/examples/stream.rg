@@ -1,20 +1,17 @@
 import "regent"
 
 local c = regentlib.c
-
-stream_array_size = 100000000
-num_tasks = 2
-num_iterations = 100
-
+local cstr = terralib.includec("string.h")
+local std = terralib.includec("stdlib.h")
 fspace triple {
   a : double,
   b : double,
   c : double 
 }
 
-task triad(a : region(ispace(int1d), triple), scalar:double, id:int)
+task triad(a : region(ispace(int1d), triple), scalar:double, id:int, num_it:int )
 where reads writes(a) do
-  for i = 0, num_iterations do
+  for i = 0, num_it do
     for i in a do
       i.a = i.b + scalar * i.c
     end
@@ -27,6 +24,23 @@ where reads writes(a) do
 end
 
 task main()
+
+  var stream_array_size = 1000000
+  var num_tasks = 10
+  var num_iterations = 100
+
+
+  var args = c.legion_runtime_get_input_args()
+  for i = 0, args.argc do
+    if cstr.strcmp(args.argv[i], "-sas") == 0 then
+      stream_array_size = std.atoi(args.argv[i + 1])
+    elseif cstr.strcmp(args.argv[i], "-nt") == 0 then
+      num_tasks = std.atoi(args.argv[i + 1])
+    elseif cstr.strcmp(args.argv[i], "-ni") == 0 then
+      num_iterations = std.atoi(args.argv[i + 1])
+    end
+  end
+--
   c.printf("Running triad with %d iterations, %d tasks, and a %ld MB array\n", 
     num_iterations, num_tasks, [ sizeof(triple) ] * (stream_array_size / 1e6))
   var a = region(ispace(int1d, stream_array_size), triple)
@@ -34,7 +48,7 @@ task main()
   var p = partition(equal, a, ispace(int1d, num_tasks))
   var starttime = timer(a)
   for i in p.colors do
-    triad(p[i], 3.0, i)
+    triad(p[i], 3.0, i, num_iterations)
   end
   var endtime = timer(a)
   var elapsed : double = endtime-starttime
